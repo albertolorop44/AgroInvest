@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: agroinvest
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn src.app:server
