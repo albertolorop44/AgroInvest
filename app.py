@@ -48,7 +48,7 @@ RUTA_INVERSIONES = (
 
 
 # =========================================================
-# CARGA Y PREPARACIÓN DE DATOS
+# DATOS
 # =========================================================
 
 (
@@ -63,7 +63,7 @@ RUTA_INVERSIONES = (
 
 
 # =========================================================
-# ENTRENAMIENTO DE MODELOS
+# MODELOS
 # =========================================================
 
 modelos = entrenar_modelos(
@@ -72,14 +72,10 @@ modelos = entrenar_modelos(
 
 
 # =========================================================
-# PARÁMETROS ECONÓMICOS
+# FUNCIONES ECONÓMICAS AUXILIARES
 # =========================================================
 
 def obtener_parametros_constantes(cultivo):
-    """
-    Obtiene los parámetros económicos medios
-    del escenario de precios constantes.
-    """
 
     datos = df_constantes[
         df_constantes["Cultivo"] == cultivo
@@ -113,10 +109,6 @@ def obtener_parametros_historicos(
     cultivo,
     anio
 ):
-    """
-    Obtiene los precios históricos de un cultivo
-    para una campaña determinada.
-    """
 
     datos = df_historicos[
         (df_historicos["Cultivo"] == cultivo)
@@ -154,8 +146,38 @@ def obtener_parametros_historicos(
 
 
 # =========================================================
-# FUNCIONES AUXILIARES
+# FUNCIONES DE PRESENTACIÓN
 # =========================================================
+
+def nombre_tecnologia(texto):
+
+    if not isinstance(texto, str):
+        return texto
+
+    reemplazos = {
+        "RTK_ISOBUS": "RTK + ISOBUS",
+        "Siembra_variable": "Siembra variable",
+        "Abono_variable": "Abono variable",
+        "Corte_tramos": "Corte de tramos"
+    }
+
+    partes = [
+        parte.strip()
+        for parte in texto.split(",")
+    ]
+
+    partes_limpias = [
+        reemplazos.get(
+            parte,
+            parte.replace("_", " ")
+        )
+        for parte in partes
+    ]
+
+    return " + ".join(
+        partes_limpias
+    )
+
 
 def crear_configuracion_actual(
     tecnologias_seleccionadas
@@ -190,8 +212,6 @@ def crear_configuracion_actual(
             )
     }
 
-    # Si hay tecnología avanzada,
-    # RTK + ISOBUS se considera obligatorio.
     if (
         configuracion["Siembra_variable"]
         or configuracion["Abono_variable"]
@@ -221,8 +241,16 @@ def formato_payback(valor):
     return f"{valor:.2f} años"
 
 
+def formato_porcentaje(valor):
+
+    if pd.isna(valor):
+        return "-"
+
+    return f"{valor:.1f} %"
+
+
 # =========================================================
-# DASH
+# APP
 # =========================================================
 
 app = Dash(__name__)
@@ -233,23 +261,31 @@ app.title = "AgroInvest"
 
 
 # =========================================================
+# ESTILOS
+# =========================================================
+
+ESTILO_TARJETA = {
+    "padding": "18px",
+    "border": "1px solid #dddddd",
+    "borderRadius": "10px",
+    "backgroundColor": "#ffffff"
+}
+
+
+# =========================================================
 # LAYOUT
 # =========================================================
 
 app.layout = html.Div(
 
     style={
-        "maxWidth": "1300px",
+        "maxWidth": "1250px",
         "margin": "0 auto",
         "padding": "30px",
         "fontFamily": "Arial"
     },
 
     children=[
-
-        # -------------------------------------------------
-        # CABECERA
-        # -------------------------------------------------
 
         html.H1(
             "AgroInvest",
@@ -269,9 +305,9 @@ app.layout = html.Div(
 
         html.Hr(),
 
-        # -------------------------------------------------
-        # CONFIGURACIÓN DE LA EXPLOTACIÓN
-        # -------------------------------------------------
+        # =================================================
+        # CONFIGURACIÓN
+        # =================================================
 
         html.H2(
             "1. Configuración de la explotación"
@@ -289,12 +325,11 @@ app.layout = html.Div(
             children=[
 
                 html.Div([
-                    html.Label(
-                        "Cultivo"
-                    ),
+                    html.Label("Cultivo"),
 
                     dcc.Dropdown(
                         id="cultivo",
+
                         options=[
                             {
                                 "label": "Maíz",
@@ -309,6 +344,7 @@ app.layout = html.Div(
                                 "value": "Tomates"
                             }
                         ],
+
                         value="Maiz",
                         clearable=False
                     )
@@ -339,6 +375,7 @@ app.layout = html.Div(
 
                     dcc.Dropdown(
                         id="escenario",
+
                         options=[
                             {
                                 "label":
@@ -359,6 +396,7 @@ app.layout = html.Div(
                                     "personalizado"
                             }
                         ],
+
                         value="constantes",
                         clearable=False
                     )
@@ -367,10 +405,6 @@ app.layout = html.Div(
         ),
 
         html.Br(),
-
-        # -------------------------------------------------
-        # TECNOLOGÍAS ACTUALES
-        # -------------------------------------------------
 
         html.Label(
             "Tecnologías instaladas actualmente"
@@ -408,13 +442,13 @@ app.layout = html.Div(
 
             value=[],
 
-            style={
-                "marginTop": "10px"
-            },
-
             labelStyle={
                 "display": "block",
-                "marginBottom": "6px"
+                "marginBottom": "8px"
+            },
+
+            style={
+                "marginTop": "10px"
             }
         ),
 
@@ -429,89 +463,98 @@ app.layout = html.Div(
 
         html.Hr(),
 
-        # -------------------------------------------------
+        # =================================================
         # CONDICIONES ECONÓMICAS
-        # -------------------------------------------------
+        # =================================================
 
         html.H2(
             "2. Condiciones económicas"
         ),
 
-        html.Div([
-            html.Label(
-                "Año histórico"
-            ),
+        html.Div(
+            id="bloque-historico",
 
-            dcc.Dropdown(
-                id="anio-historico",
-                clearable=False
-            )
-        ]),
+            children=[
+                html.Label(
+                    "Año histórico"
+                ),
 
-        html.Br(),
+                dcc.Dropdown(
+                    id="anio-historico",
+                    clearable=False
+                )
+            ]
+        ),
 
-        html.Details([
+        html.Div(
+            id="bloque-personalizado",
 
-            html.Summary(
-                "Parámetros personalizados"
-            ),
+            style={
+                "marginTop": "15px"
+            },
 
-            html.Div(
+            children=[
 
-                style={
-                    "display": "grid",
-                    "gridTemplateColumns":
-                        "repeat(3, 1fr)",
-                    "gap": "15px",
-                    "marginTop": "15px"
-                },
+                html.H4(
+                    "Parámetros personalizados"
+                ),
 
-                children=[
+                html.Div(
 
-                    dcc.Input(
-                        id="precio-venta",
-                        type="number",
-                        placeholder="Precio venta €/t"
-                    ),
+                    style={
+                        "display": "grid",
+                        "gridTemplateColumns":
+                            "repeat(3, 1fr)",
+                        "gap": "15px"
+                    },
 
-                    dcc.Input(
-                        id="precio-gasoil",
-                        type="number",
-                        placeholder="Gasóleo €/L"
-                    ),
+                    children=[
 
-                    dcc.Input(
-                        id="precio-fitosanitario",
-                        type="number",
-                        placeholder="Fitosanitario €/L"
-                    ),
+                        dcc.Input(
+                            id="precio-venta",
+                            type="number",
+                            placeholder="Precio venta €/t"
+                        ),
 
-                    dcc.Input(
-                        id="precio-semilla",
-                        type="number",
-                        placeholder="Precio unitario semilla"
-                    ),
+                        dcc.Input(
+                            id="precio-gasoil",
+                            type="number",
+                            placeholder="Gasóleo €/L"
+                        ),
 
-                    dcc.Input(
-                        id="precio-abono",
-                        type="number",
-                        placeholder="Abono €/kg"
-                    ),
+                        dcc.Input(
+                            id="precio-fitosanitario",
+                            type="number",
+                            placeholder="Fitosanitario €/L"
+                        ),
 
-                    dcc.Input(
-                        id="gastos-fijos",
-                        type="number",
-                        placeholder="Gastos fijos €/ha"
-                    ),
+                        dcc.Input(
+                            id="precio-semilla",
+                            type="number",
+                            placeholder="Precio unitario semilla"
+                        ),
 
-                    dcc.Input(
-                        id="descuento-humedad",
-                        type="number",
-                        placeholder="Descuento humedad €/t"
-                    )
-                ]
-            )
-        ]),
+                        dcc.Input(
+                            id="precio-abono",
+                            type="number",
+                            placeholder="Abono €/kg"
+                        ),
+
+                        dcc.Input(
+                            id="gastos-fijos",
+                            type="number",
+                            placeholder="Gastos fijos €/ha"
+                        ),
+
+                        dcc.Input(
+                            id="descuento-humedad",
+                            type="number",
+                            placeholder="Descuento humedad €/t"
+                        )
+                    ]
+                )
+            ]
+        ),
 
         html.Br(),
 
@@ -528,9 +571,9 @@ app.layout = html.Div(
 
         html.Hr(),
 
-        # -------------------------------------------------
+        # =================================================
         # RESULTADOS
-        # -------------------------------------------------
+        # =================================================
 
         html.H2(
             "3. Recomendación"
@@ -545,51 +588,78 @@ app.layout = html.Div(
             style={
                 "display": "grid",
                 "gridTemplateColumns":
-                    "repeat(4, 1fr)",
-                "gap": "15px"
+                    "repeat(5, 1fr)",
+                "gap": "15px",
+                "marginBottom": "25px"
             },
 
             children=[
 
-                html.Div([
-                    html.H4(
-                        "Mejor inversión"
-                    ),
-                    html.H3(
-                        id="kpi-tecnologias"
-                    )
-                ]),
+                html.Div(
+                    style=ESTILO_TARJETA,
+                    children=[
+                        html.H4(
+                            "Mejor inversión"
+                        ),
+                        html.Div(
+                            id="kpi-tecnologias",
+                            style={
+                                "fontSize": "18px",
+                                "fontWeight": "bold"
+                            }
+                        )
+                    ]
+                ),
 
-                html.Div([
-                    html.H4(
-                        "Inversión"
-                    ),
-                    html.H3(
-                        id="kpi-inversion"
-                    )
-                ]),
+                html.Div(
+                    style=ESTILO_TARJETA,
+                    children=[
+                        html.H4(
+                            "Inversión"
+                        ),
+                        html.H3(
+                            id="kpi-inversion"
+                        )
+                    ]
+                ),
 
-                html.Div([
-                    html.H4(
-                        "VAN"
-                    ),
-                    html.H3(
-                        id="kpi-van"
-                    )
-                ]),
+                html.Div(
+                    style=ESTILO_TARJETA,
+                    children=[
+                        html.H4(
+                            "VAN"
+                        ),
+                        html.H3(
+                            id="kpi-van"
+                        )
+                    ]
+                ),
 
-                html.Div([
-                    html.H4(
-                        "Payback"
-                    ),
-                    html.H3(
-                        id="kpi-payback"
-                    )
-                ])
+                html.Div(
+                    style=ESTILO_TARJETA,
+                    children=[
+                        html.H4(
+                            "Payback"
+                        ),
+                        html.H3(
+                            id="kpi-payback"
+                        )
+                    ]
+                ),
+
+                html.Div(
+                    style=ESTILO_TARJETA,
+                    children=[
+                        html.H4(
+                            "ROI"
+                        ),
+                        html.H3(
+                            id="kpi-roi"
+                        )
+                    ]
+                )
             ]
         ),
-
-        html.Br(),
 
         dash_table.DataTable(
             id="tabla-ranking",
@@ -602,7 +672,10 @@ app.layout = html.Div(
 
             style_cell={
                 "textAlign": "left",
-                "padding": "8px"
+                "padding": "8px",
+                "minWidth": "90px",
+                "maxWidth": "220px",
+                "whiteSpace": "normal"
             },
 
             style_header={
@@ -628,7 +701,49 @@ app.layout = html.Div(
 
 
 # =========================================================
-# CALLBACK AÑOS DISPONIBLES
+# MOSTRAR / OCULTAR BLOQUES SEGÚN ESCENARIO
+# =========================================================
+
+@app.callback(
+    Output(
+        "bloque-historico",
+        "style"
+    ),
+    Output(
+        "bloque-personalizado",
+        "style"
+    ),
+    Input(
+        "escenario",
+        "value"
+    )
+)
+def mostrar_controles_escenario(
+    escenario
+):
+
+    oculto = {
+        "display": "none"
+    }
+
+    visible = {
+        "display": "block",
+        "marginTop": "15px"
+    }
+
+    if escenario == "historicos":
+
+        return visible, oculto
+
+    if escenario == "personalizado":
+
+        return oculto, visible
+
+    return oculto, oculto
+
+
+# =========================================================
+# AÑOS HISTÓRICOS
 # =========================================================
 
 @app.callback(
@@ -695,6 +810,10 @@ def actualizar_anios(
     ),
     Output(
         "kpi-payback",
+        "children"
+    ),
+    Output(
+        "kpi-roi",
         "children"
     ),
     Output(
@@ -800,6 +919,7 @@ def analizar_inversiones(
             "-",
             "-",
             "-",
+            "-",
             [],
             [],
             {},
@@ -810,8 +930,10 @@ def analizar_inversiones(
 
     try:
 
-        if superficie is None or superficie <= 0:
-
+        if (
+            superficie is None
+            or superficie <= 0
+        ):
             raise ValueError(
                 "La superficie debe ser mayor que 0."
             )
@@ -822,9 +944,9 @@ def analizar_inversiones(
             )
         )
 
-        # ---------------------------------
-        # ESCENARIO ECONÓMICO
-        # ---------------------------------
+        # =============================================
+        # ESCENARIO
+        # =============================================
 
         if escenario == "constantes":
 
@@ -892,9 +1014,9 @@ def analizar_inversiones(
                 "Escenario económico no válido."
             )
 
-        # ---------------------------------
+        # =============================================
         # EVALUACIÓN
-        # ---------------------------------
+        # =============================================
 
         tabla = evaluar_todas_alternativas(
             cultivo=cultivo,
@@ -925,37 +1047,81 @@ def analizar_inversiones(
 
         mejor = ranking.iloc[0]
 
-        # ---------------------------------
-        # TABLA
-        # ---------------------------------
+        # =============================================
+        # NOMBRES LEGIBLES
+        # =============================================
 
-        columnas_tabla = [
-            "Tecnologias_nuevas",
-            "Inversion",
-            "Beneficio_incremental_ha",
-            "ROI",
-            "Payback",
-            "VAN",
-            "TIR"
-        ]
+        ranking = ranking.copy()
+
+        ranking[
+            "Tecnologias"
+        ] = (
+            ranking[
+                "Tecnologias_nuevas"
+            ]
+            .apply(
+                nombre_tecnologia
+            )
+        )
+
+        mejor_tecnologia = (
+            nombre_tecnologia(
+                mejor[
+                    "Tecnologias_nuevas"
+                ]
+            )
+        )
+
+        # =============================================
+        # TABLA REDUCIDA
+        # =============================================
+
+        tabla_mostrar = ranking[
+            [
+                "Tecnologias",
+                "Inversion",
+                "ROI",
+                "Payback",
+                "VAN",
+                "TIR"
+            ]
+        ].copy()
 
         tabla_mostrar = (
-            ranking[columnas_tabla]
+            tabla_mostrar
             .round(2)
         )
 
         columnas_dash = [
             {
-                "name": columna,
-                "id": columna
+                "name": "Tecnologías",
+                "id": "Tecnologias"
+            },
+            {
+                "name": "Inversión (€)",
+                "id": "Inversion"
+            },
+            {
+                "name": "ROI (%)",
+                "id": "ROI"
+            },
+            {
+                "name": "Payback (años)",
+                "id": "Payback"
+            },
+            {
+                "name": "VAN (€)",
+                "id": "VAN"
+            },
+            {
+                "name": "TIR (%)",
+                "id": "TIR"
             }
-            for columna
-            in columnas_tabla
         ]
 
-        # ---------------------------------
+        # =============================================
         # GRÁFICOS
-        # ---------------------------------
+        # =============================================
 
         fig_van = grafico_ranking_van(
             ranking
@@ -974,9 +1140,7 @@ def analizar_inversiones(
         )
 
         return (
-            mejor[
-                "Tecnologias_nuevas"
-            ],
+            mejor_tecnologia,
 
             formato_euros(
                 mejor["Inversion"]
@@ -988,6 +1152,10 @@ def analizar_inversiones(
 
             formato_payback(
                 mejor["Payback"]
+            ),
+
+            formato_porcentaje(
+                mejor["ROI"]
             ),
 
             tabla_mostrar.to_dict(
@@ -1008,6 +1176,7 @@ def analizar_inversiones(
     except Exception as error:
 
         return (
+            "-",
             "-",
             "-",
             "-",
