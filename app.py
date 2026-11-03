@@ -13,11 +13,16 @@ from dash import (
 )
 
 from src.etl import preparar_datos
-from src.model import entrenar_modelos
+
+from src.model import (
+    entrenar_modelos,
+    predecir_resultados
+)
 
 from src.finance import (
     evaluar_todas_alternativas,
-    evaluar_alternativas_multicultivo
+    evaluar_alternativas_multicultivo,
+    expandir_configuracion
 )
 
 from src.forecast import (
@@ -306,6 +311,217 @@ def formato_payback_tabla(valor):
 
 
 # =========================================================
+# COMPARACIÓN TÉCNICA
+# =========================================================
+
+NOMBRES_INDICADORES = {
+    "Rend_t_ha":
+        "Rendimiento",
+
+    "Productividad_ha_h":
+        "Productividad",
+
+    "Consumo_L_ha":
+        "Consumo de combustible",
+
+    "Fitosanitarios_ha":
+        "Fitosanitarios",
+
+    "Semillas_ha":
+        "Semillas",
+
+    "Abono_ha":
+        "Abono",
+
+    "Pasadas_ha":
+        "Pasadas"
+}
+
+
+UNIDADES_INDICADORES = {
+    "Rend_t_ha":
+        "t/ha",
+
+    "Productividad_ha_h":
+        "ha/h",
+
+    "Consumo_L_ha":
+        "L/ha",
+
+    "Fitosanitarios_ha":
+        "L/ha",
+
+    "Semillas_ha":
+        "unidades/ha",
+
+    "Abono_ha":
+        "kg/ha",
+
+    "Pasadas_ha":
+        "pasadas/ha"
+}
+
+
+def formatear_valor_tecnico(
+    variable,
+    valor
+):
+
+    if pd.isna(valor):
+        return "-"
+
+    if variable == "Semillas_ha":
+
+        return (
+            f"{valor:,.0f}"
+            .replace(",", ".")
+        )
+
+    return f"{valor:.2f}"
+
+
+def crear_comparacion_tecnica_cultivo(
+    cultivo,
+    configuracion_actual,
+    configuracion_recomendada
+):
+
+    actual_modelo = (
+        expandir_configuracion(
+            configuracion_actual
+        )
+    )
+
+    recomendada_modelo = (
+        expandir_configuracion(
+            configuracion_recomendada
+        )
+    )
+
+    pred_actual = predecir_resultados(
+        cultivo=cultivo,
+        modelos=modelos,
+        **actual_modelo
+    )
+
+    pred_recomendada = (
+        predecir_resultados(
+            cultivo=cultivo,
+            modelos=modelos,
+            **recomendada_modelo
+        )
+    )
+
+    filas = []
+
+    orden_variables = [
+        "Rend_t_ha",
+        "Productividad_ha_h",
+        "Consumo_L_ha",
+        "Fitosanitarios_ha",
+        "Semillas_ha",
+        "Abono_ha",
+        "Pasadas_ha"
+    ]
+
+    for variable in orden_variables:
+
+        actual = pred_actual[
+            variable
+        ]
+
+        recomendada = (
+            pred_recomendada[
+                variable
+            ]
+        )
+
+        diferencia = (
+            recomendada - actual
+        )
+
+        filas.append({
+
+            "Indicador":
+                NOMBRES_INDICADORES[
+                    variable
+                ],
+
+            "Unidad":
+                UNIDADES_INDICADORES[
+                    variable
+                ],
+
+            "Actual":
+                formatear_valor_tecnico(
+                    variable,
+                    actual
+                ),
+
+            "Recomendada":
+                formatear_valor_tecnico(
+                    variable,
+                    recomendada
+                ),
+
+            "Variacion":
+                (
+                    f"{diferencia:+.2f}"
+                    if variable
+                    != "Semillas_ha"
+                    else
+                    f"{diferencia:+,.0f}"
+                    .replace(",", ".")
+                )
+        })
+
+    return filas
+
+
+def crear_comparacion_tecnica_multi(
+    explotacion,
+    configuracion_actual,
+    configuracion_recomendada
+):
+
+    filas = []
+
+    nombres_cultivos = {
+        "Maiz": "Maíz",
+        "Arroz": "Arroz",
+        "Tomates": "Tomate"
+    }
+
+    for cultivo in explotacion:
+
+        comparacion = (
+            crear_comparacion_tecnica_cultivo(
+                cultivo=cultivo,
+                configuracion_actual=
+                    configuracion_actual,
+                configuracion_recomendada=
+                    configuracion_recomendada
+            )
+        )
+
+        for fila in comparacion:
+
+            fila = fila.copy()
+
+            fila[
+                "Cultivo"
+            ] = nombres_cultivos[
+                cultivo
+            ]
+
+            filas.append(
+                fila
+            )
+
+    return filas
+
+
+# =========================================================
 # APP
 # =========================================================
 
@@ -390,12 +606,16 @@ app.layout = html.Div(
 
             options=[
                 {
-                    "label": " Un cultivo",
-                    "value": "mono"
+                    "label":
+                        " Un cultivo",
+                    "value":
+                        "mono"
                 },
                 {
-                    "label": " Varios cultivos",
-                    "value": "multi"
+                    "label":
+                        " Varios cultivos",
+                    "value":
+                        "multi"
                 }
             ],
 
@@ -413,9 +633,7 @@ app.layout = html.Div(
             }
         ),
 
-        # -------------------------------------------------
         # MONOCULTIVO
-        # -------------------------------------------------
 
         html.Div(
             id="bloque-monocultivo",
@@ -443,16 +661,22 @@ app.layout = html.Div(
 
                                 options=[
                                     {
-                                        "label": "Maíz",
-                                        "value": "Maiz"
+                                        "label":
+                                            "Maíz",
+                                        "value":
+                                            "Maiz"
                                     },
                                     {
-                                        "label": "Arroz",
-                                        "value": "Arroz"
+                                        "label":
+                                            "Arroz",
+                                        "value":
+                                            "Arroz"
                                     },
                                     {
-                                        "label": "Tomate",
-                                        "value": "Tomates"
+                                        "label":
+                                            "Tomate",
+                                        "value":
+                                            "Tomates"
                                     }
                                 ],
 
@@ -480,9 +704,7 @@ app.layout = html.Div(
             ]
         ),
 
-        # -------------------------------------------------
         # MULTICULTIVO
-        # -------------------------------------------------
 
         html.Div(
             id="bloque-multicultivo",
@@ -557,9 +779,7 @@ app.layout = html.Div(
 
         html.Br(),
 
-        # -------------------------------------------------
-        # ESCENARIO ECONÓMICO
-        # -------------------------------------------------
+        # ESCENARIO
 
         html.Div([
             html.Label(
@@ -602,10 +822,6 @@ app.layout = html.Div(
         ]),
 
         html.Br(),
-
-        # -------------------------------------------------
-        # TECNOLOGÍAS
-        # -------------------------------------------------
 
         html.Label(
             "Tecnologías instaladas actualmente",
@@ -676,8 +892,6 @@ app.layout = html.Div(
             "2. Condiciones económicas"
         ),
 
-        # Histórico
-
         html.Div(
             id="bloque-historico",
 
@@ -692,8 +906,6 @@ app.layout = html.Div(
                 )
             ]
         ),
-
-        # Personalizado
 
         html.Div(
             id="bloque-personalizado",
@@ -761,9 +973,7 @@ app.layout = html.Div(
             ]
         ),
 
-        # -------------------------------------------------
         # PREVISIÓN FUTURA
-        # -------------------------------------------------
 
         html.Div(
             id="bloque-futuro",
@@ -850,9 +1060,9 @@ app.layout = html.Div(
                     "La previsión se obtiene a partir "
                     "de las tendencias históricas de "
                     "los parámetros económicos. "
-                    "Debe interpretarse como un "
-                    "escenario orientativo y no como "
-                    "una predicción garantizada.",
+                    "Debe interpretarse como un escenario "
+                    "orientativo y no como una predicción "
+                    "garantizada.",
                     style={
                         "fontSize": "13px",
                         "marginTop": "15px"
@@ -878,11 +1088,11 @@ app.layout = html.Div(
         html.Hr(),
 
         # =================================================
-        # 3. RECOMENDACIÓN
+        # 3. RECOMENDACIÓN ECONÓMICA
         # =================================================
 
         html.H2(
-            "3. Recomendación"
+            "3. Recomendación económica"
         ),
 
         html.Div(
@@ -1016,6 +1226,49 @@ app.layout = html.Div(
 
         dcc.Graph(
             id="grafico-beneficio"
+        ),
+
+        html.Hr(),
+
+        # =================================================
+        # 4. IMPACTO TÉCNICO
+        # =================================================
+
+        html.H2(
+            "4. Impacto técnico estimado"
+        ),
+
+        html.P(
+            "Comparación entre los resultados técnicos "
+            "estimados para la situación actual y la "
+            "alternativa recomendada. Estas estimaciones "
+            "proceden de los modelos predictivos y deben "
+            "interpretarse como apoyo a la decisión, no "
+            "como efectos causales garantizados."
+        ),
+
+        dash_table.DataTable(
+            id="tabla-tecnica",
+
+            style_table={
+                "overflowX": "auto",
+                "marginBottom": "30px"
+            },
+
+            style_cell={
+                "textAlign": "left",
+                "padding": "10px",
+                "whiteSpace": "normal",
+                "height": "auto",
+                "fontFamily": "Arial",
+                "fontSize": "14px"
+            },
+
+            style_header={
+                "fontWeight": "bold",
+                "backgroundColor":
+                    "#f5f5f5"
+            }
         )
     ]
 )
@@ -1056,7 +1309,7 @@ def mostrar_tipo_explotacion(tipo):
 
 
 # =========================================================
-# MOSTRAR ESCENARIO ECONÓMICO
+# ESCENARIO ECONÓMICO
 # =========================================================
 
 @app.callback(
@@ -1258,6 +1511,14 @@ def actualizar_anios(
         "figure"
     ),
     Output(
+        "tabla-tecnica",
+        "data"
+    ),
+    Output(
+        "tabla-tecnica",
+        "columns"
+    ),
+    Output(
         "mensaje-error",
         "children"
     ),
@@ -1393,6 +1654,8 @@ def analizar_inversiones(
             {},
             {},
             {},
+            [],
+            [],
             ""
         )
 
@@ -1403,10 +1666,6 @@ def analizar_inversiones(
                 tecnologias_actuales
             )
         )
-
-        # =================================================
-        # PREVISIÓN FUTURA
-        # =================================================
 
         escenarios_futuros = None
 
@@ -1476,8 +1735,8 @@ def analizar_inversiones(
                 )
 
                 descripcion_escenario = (
-                    f"precios históricos "
-                    f"de {anio}"
+                    f"precios históricos de "
+                    f"{anio}"
                 )
 
             elif escenario == "personalizado":
@@ -1497,9 +1756,8 @@ def analizar_inversiones(
                 ):
 
                     raise ValueError(
-                        "Completa todos los "
-                        "parámetros del escenario "
-                        "personalizado."
+                        "Completa todos los parámetros "
+                        "del escenario personalizado."
                     )
 
                 parametros = {
@@ -1540,15 +1798,9 @@ def analizar_inversiones(
                 )
 
                 descripcion_escenario = (
-                    f"previsión {escenario_futuro.lower()} "
+                    f"previsión "
+                    f"{escenario_futuro.lower()} "
                     f"para {int(anio_futuro)}"
-                )
-
-            else:
-
-                raise ValueError(
-                    "Escenario económico "
-                    "no válido."
                 )
 
             tabla = evaluar_todas_alternativas(
@@ -1566,6 +1818,10 @@ def analizar_inversiones(
                 f"{superficie:g} ha de "
                 f"{cultivo.lower()}"
             )
+
+            explotacion_tecnica = {
+                cultivo: superficie
+            }
 
         # =================================================
         # MULTICULTIVO
@@ -1609,10 +1865,7 @@ def analizar_inversiones(
                 raise ValueError(
                     "El escenario personalizado "
                     "multicultivo requiere parámetros "
-                    "específicos por cultivo. "
-                    "Utiliza por ahora precios "
-                    "constantes, históricos o "
-                    "previsión futura."
+                    "específicos por cultivo."
                 )
 
             parametros_por_cultivo = {}
@@ -1661,8 +1914,8 @@ def analizar_inversiones(
             elif escenario == "historicos":
 
                 descripcion_escenario = (
-                    f"precios históricos "
-                    f"de {anio}"
+                    f"precios históricos de "
+                    f"{anio}"
                 )
 
             elif escenario == "futuro":
@@ -1695,13 +1948,13 @@ def analizar_inversiones(
                 explotacion.values()
             )
 
-            partes = []
-
             nombres_visibles = {
                 "Maiz": "maíz",
                 "Arroz": "arroz",
                 "Tomates": "tomate"
             }
+
+            partes = []
 
             for (
                 cultivo_nombre,
@@ -1719,8 +1972,12 @@ def analizar_inversiones(
                 + ", ".join(partes)
             )
 
+            explotacion_tecnica = (
+                explotacion
+            )
+
         # =================================================
-        # RESULTADOS
+        # RANKING
         # =================================================
 
         if tabla.empty:
@@ -1740,6 +1997,12 @@ def analizar_inversiones(
         )
 
         mejor = ranking.iloc[0]
+
+        configuracion_recomendada = (
+            mejor[
+                "Configuracion_objetivo"
+            ]
+        )
 
         ranking = ranking.copy()
 
@@ -1761,7 +2024,7 @@ def analizar_inversiones(
         )
 
         # =================================================
-        # RECOMENDACIÓN
+        # TEXTO
         # =================================================
 
         if mejor["VAN"] > 0:
@@ -1794,7 +2057,7 @@ def analizar_inversiones(
             )
 
         # =================================================
-        # TABLA
+        # TABLA ECONÓMICA
         # =================================================
 
         tabla_mostrar = pd.DataFrame({
@@ -1860,6 +2123,85 @@ def analizar_inversiones(
         ]
 
         # =================================================
+        # TABLA TÉCNICA
+        # =================================================
+
+        if tipo_explotacion == "mono":
+
+            tabla_tecnica = (
+                crear_comparacion_tecnica_cultivo(
+                    cultivo=cultivo,
+                    configuracion_actual=
+                        configuracion_actual,
+                    configuracion_recomendada=
+                        configuracion_recomendada
+                )
+            )
+
+            columnas_tecnicas = [
+                {
+                    "name": "Indicador",
+                    "id": "Indicador"
+                },
+                {
+                    "name": "Unidad",
+                    "id": "Unidad"
+                },
+                {
+                    "name": "Situación actual",
+                    "id": "Actual"
+                },
+                {
+                    "name": "Recomendada",
+                    "id": "Recomendada"
+                },
+                {
+                    "name": "Variación",
+                    "id": "Variacion"
+                }
+            ]
+
+        else:
+
+            tabla_tecnica = (
+                crear_comparacion_tecnica_multi(
+                    explotacion=
+                        explotacion_tecnica,
+                    configuracion_actual=
+                        configuracion_actual,
+                    configuracion_recomendada=
+                        configuracion_recomendada
+                )
+            )
+
+            columnas_tecnicas = [
+                {
+                    "name": "Cultivo",
+                    "id": "Cultivo"
+                },
+                {
+                    "name": "Indicador",
+                    "id": "Indicador"
+                },
+                {
+                    "name": "Unidad",
+                    "id": "Unidad"
+                },
+                {
+                    "name": "Situación actual",
+                    "id": "Actual"
+                },
+                {
+                    "name": "Recomendada",
+                    "id": "Recomendada"
+                },
+                {
+                    "name": "Variación",
+                    "id": "Variacion"
+                }
+            ]
+
+        # =================================================
         # GRÁFICOS
         # =================================================
 
@@ -1914,6 +2256,10 @@ def analizar_inversiones(
 
             fig_beneficio,
 
+            tabla_tecnica,
+
+            columnas_tecnicas,
+
             ""
         )
 
@@ -1931,6 +2277,8 @@ def analizar_inversiones(
             {},
             {},
             {},
+            [],
+            [],
             html.Div(
                 f"Error: {error}",
                 style={
