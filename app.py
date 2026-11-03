@@ -261,13 +261,22 @@ def formato_euros(valor):
     )
 
 
-def formato_payback(valor):
+def formato_payback(
+    valor,
+    vida_util
+):
 
     if pd.isna(valor):
         return "-"
 
     if valor == float("inf"):
         return "No recuperable"
+
+    if valor > vida_util:
+        return (
+            "No recuperable "
+            "en la vida útil"
+        )
 
     return f"{valor:.2f} años"
 
@@ -299,13 +308,22 @@ def formato_porcentaje_tabla(valor):
     return f"{valor:.2f} %"
 
 
-def formato_payback_tabla(valor):
+def formato_payback_tabla(
+    valor,
+    vida_util
+):
 
     if pd.isna(valor):
         return "-"
 
     if valor == float("inf"):
         return "No recuperable"
+
+    if valor > vida_util:
+        return (
+            "No recuperable "
+            "en la vida útil"
+        )
 
     return f"{valor:.2f}"
 
@@ -1071,6 +1089,111 @@ app.layout = html.Div(
             ]
         ),
 
+        # =================================================
+        # PARÁMETROS FINANCIEROS
+        # =================================================
+
+        html.Details(
+
+            open=False,
+
+            style={
+                "marginTop": "18px",
+                "marginBottom": "20px"
+            },
+
+            children=[
+
+                html.Summary(
+                    "Parámetros financieros",
+                    style={
+                        "fontWeight": "bold",
+                        "fontSize": "16px",
+                        "cursor": "pointer",
+                        "marginBottom": "15px"
+                    }
+                ),
+
+                html.Div(
+
+                    style={
+                        "display": "grid",
+                        "gridTemplateColumns":
+                            "1fr 1fr",
+                        "gap": "25px",
+                        "maxWidth": "700px",
+                        "paddingTop": "10px"
+                    },
+
+                    children=[
+
+                        html.Div([
+
+                            html.Label(
+                                "Vida útil (años)"
+                            ),
+
+                            dcc.Input(
+                                id="vida-util",
+                                type="number",
+                                value=15,
+                                min=1,
+                                max=50,
+                                step=1,
+                                style=ESTILO_INPUT
+                            ),
+
+                            html.P(
+                                "Horizonte durante el que "
+                                "se evalúan los beneficios "
+                                "de la inversión.",
+                                style={
+                                    "fontSize": "12px",
+                                    "marginTop": "5px"
+                                }
+                            )
+                        ]),
+
+                        html.Div([
+
+                            html.Label(
+                                "Tasa de descuento (%)"
+                            ),
+
+                            dcc.Input(
+                                id="tasa-descuento",
+                                type="number",
+                                value=5,
+                                min=0,
+                                max=100,
+                                step=0.5,
+                                style=ESTILO_INPUT
+                            ),
+
+                            html.P(
+                                "Tasa utilizada para "
+                                "actualizar los flujos "
+                                "futuros al valor presente.",
+                                style={
+                                    "fontSize": "12px",
+                                    "marginTop": "5px"
+                                }
+                            )
+                        ])
+                    ]
+                ),
+
+                html.P(
+                    "Valores base utilizados por AgroInvest: "
+                    "15 años de vida útil y 5 % de tasa de descuento.",
+                    style={
+                        "fontSize": "12px",
+                        "fontStyle": "italic"
+                    }
+                )
+            ]
+        ),
+
         html.Br(),
 
         html.Button(
@@ -1616,6 +1739,16 @@ def actualizar_anios(
     State(
         "descuento-humedad",
         "value"
+    ),
+
+    State(
+        "vida-util",
+        "value"
+    ),
+
+    State(
+        "tasa-descuento",
+        "value"
     )
 )
 def analizar_inversiones(
@@ -1637,7 +1770,9 @@ def analizar_inversiones(
     precio_semilla,
     precio_abono,
     gastos_fijos,
-    descuento_humedad
+    descuento_humedad,
+    vida_util,
+    tasa_descuento
 ):
 
     if n_clicks == 0:
@@ -1660,6 +1795,37 @@ def analizar_inversiones(
         )
 
     try:
+
+        # =================================================
+        # VALIDACIÓN FINANCIERA
+        # =================================================
+
+        if (
+            vida_util is None
+            or vida_util <= 0
+        ):
+            raise ValueError(
+                "La vida útil debe ser "
+                "mayor que 0."
+            )
+
+        if (
+            tasa_descuento is None
+            or tasa_descuento < 0
+        ):
+            raise ValueError(
+                "La tasa de descuento no puede "
+                "ser negativa."
+            )
+
+        vida_util = int(
+            vida_util
+        )
+
+        tasa_descuento_decimal = (
+            float(tasa_descuento)
+            / 100
+        )
 
         configuracion_actual = (
             crear_configuracion_actual(
@@ -1810,8 +1976,9 @@ def analizar_inversiones(
                     configuracion_actual,
                 parametros=parametros,
                 modelos=modelos,
-                vida_util=15,
-                tasa_descuento=0.05
+                vida_util=vida_util,
+                tasa_descuento=
+                    tasa_descuento_decimal
             )
 
             descripcion_explotacion = (
@@ -1820,7 +1987,8 @@ def analizar_inversiones(
             )
 
             explotacion_tecnica = {
-                cultivo: superficie
+                cultivo:
+                    superficie
             }
 
         # =================================================
@@ -1938,9 +2106,11 @@ def analizar_inversiones(
 
                     modelos=modelos,
 
-                    vida_util=15,
+                    vida_util=
+                        vida_util,
 
-                    tasa_descuento=0.05
+                    tasa_descuento=
+                        tasa_descuento_decimal
                 )
             )
 
@@ -2041,7 +2211,10 @@ def analizar_inversiones(
                 f"presenta un VAN estimado de "
                 f"{formato_euros(mejor['VAN'])} "
                 f"y un periodo de recuperación de "
-                f"{formato_payback(mejor['Payback'])}. "
+                f"{formato_payback(mejor['Payback'], vida_util)}. "
+                f"El análisis utiliza una vida útil de "
+                f"{vida_util} años y una tasa de descuento "
+                f"del {tasa_descuento:.1f} %. "
                 f"El resultado debe interpretarse "
                 f"como apoyo a la decisión bajo los "
                 f"supuestos seleccionados."
@@ -2053,7 +2226,10 @@ def analizar_inversiones(
                 f"Bajo el escenario de "
                 f"{descripcion_escenario}, "
                 f"ninguna de las alternativas "
-                f"evaluadas presenta un VAN positivo."
+                f"evaluadas presenta un VAN positivo "
+                f"con una vida útil de "
+                f"{vida_util} años y una tasa de descuento "
+                f"del {tasa_descuento:.1f} %."
             )
 
         # =================================================
@@ -2079,7 +2255,11 @@ def analizar_inversiones(
             "Payback":
                 ranking["Payback"]
                 .apply(
-                    formato_payback_tabla
+                    lambda x:
+                        formato_payback_tabla(
+                            x,
+                            vida_util
+                        )
                 ),
 
             "VAN":
@@ -2097,28 +2277,40 @@ def analizar_inversiones(
 
         columnas_dash = [
             {
-                "name": "Tecnologías",
-                "id": "Tecnologias"
+                "name":
+                    "Tecnologías",
+                "id":
+                    "Tecnologias"
             },
             {
-                "name": "Inversión",
-                "id": "Inversion"
+                "name":
+                    "Inversión",
+                "id":
+                    "Inversion"
             },
             {
-                "name": "ROI",
-                "id": "ROI"
+                "name":
+                    "ROI",
+                "id":
+                    "ROI"
             },
             {
-                "name": "Payback (años)",
-                "id": "Payback"
+                "name":
+                    "Payback",
+                "id":
+                    "Payback"
             },
             {
-                "name": "VAN",
-                "id": "VAN"
+                "name":
+                    "VAN",
+                "id":
+                    "VAN"
             },
             {
-                "name": "TIR",
-                "id": "TIR"
+                "name":
+                    "TIR",
+                "id":
+                    "TIR"
             }
         ]
 
@@ -2176,28 +2368,40 @@ def analizar_inversiones(
 
             columnas_tecnicas = [
                 {
-                    "name": "Cultivo",
-                    "id": "Cultivo"
+                    "name":
+                        "Cultivo",
+                    "id":
+                        "Cultivo"
                 },
                 {
-                    "name": "Indicador",
-                    "id": "Indicador"
+                    "name":
+                        "Indicador",
+                    "id":
+                        "Indicador"
                 },
                 {
-                    "name": "Unidad",
-                    "id": "Unidad"
+                    "name":
+                        "Unidad",
+                    "id":
+                        "Unidad"
                 },
                 {
-                    "name": "Situación actual",
-                    "id": "Actual"
+                    "name":
+                        "Situación actual",
+                    "id":
+                        "Actual"
                 },
                 {
-                    "name": "Recomendada",
-                    "id": "Recomendada"
+                    "name":
+                        "Recomendada",
+                    "id":
+                        "Recomendada"
                 },
                 {
-                    "name": "Variación",
-                    "id": "Variacion"
+                    "name":
+                        "Variación",
+                    "id":
+                        "Variacion"
                 }
             ]
 
@@ -2235,7 +2439,8 @@ def analizar_inversiones(
             ),
 
             formato_payback(
-                mejor["Payback"]
+                mejor["Payback"],
+                vida_util
             ),
 
             formato_porcentaje(
