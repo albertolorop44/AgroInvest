@@ -3,7 +3,7 @@ import plotly.express as px
 
 def _nombre_tecnologia(texto):
     """
-    Convierte los nombres internos en etiquetas más legibles.
+    Convierte nombres internos en etiquetas legibles.
     """
 
     if not isinstance(texto, str):
@@ -33,9 +33,6 @@ def _nombre_tecnologia(texto):
 
 
 def _preparar_tabla(tabla):
-    """
-    Crea una copia con nombres de tecnologías legibles.
-    """
 
     datos = tabla.copy()
 
@@ -47,13 +44,31 @@ def _preparar_tabla(tabla):
     return datos
 
 
+def _estilo_comun(fig):
+
+    fig.update_layout(
+        height=390,
+        margin={
+            "l": 310,
+            "r": 40,
+            "t": 65,
+            "b": 55
+        },
+        title={
+            "x": 0.02
+        },
+        font={
+            "size": 13
+        }
+    )
+
+    return fig
+
+
 def grafico_ranking_van(
     tabla,
     top_n=8
 ):
-    """
-    Ranking de alternativas por VAN.
-    """
 
     datos = _preparar_tabla(tabla)
 
@@ -74,7 +89,7 @@ def grafico_ranking_van(
         title="Ranking de alternativas por VAN",
         labels={
             "VAN": "VAN (€)",
-            "Tecnologias_legibles": "Tecnologías"
+            "Tecnologias_legibles": ""
         },
         hover_data={
             "Inversion": ":,.0f",
@@ -89,26 +104,21 @@ def grafico_ranking_van(
         yaxis={
             "categoryorder":
                 "total ascending"
-        },
-        height=460,
-        margin={
-            "l": 240,
-            "r": 40,
-            "t": 70,
-            "b": 60
         }
     )
 
-    return fig
+    fig.update_xaxes(
+        zeroline=True,
+        zerolinewidth=2
+    )
+
+    return _estilo_comun(fig)
 
 
 def grafico_ranking_payback(
     tabla,
     top_n=8
 ):
-    """
-    Ranking de alternativas por menor Payback.
-    """
 
     datos = _preparar_tabla(tabla)
 
@@ -137,7 +147,7 @@ def grafico_ranking_payback(
         title="Ranking de alternativas por Payback",
         labels={
             "Payback": "Payback (años)",
-            "Tecnologias_legibles": "Tecnologías"
+            "Tecnologias_legibles": ""
         },
         hover_data={
             "Inversion": ":,.0f",
@@ -148,30 +158,24 @@ def grafico_ranking_payback(
         }
     )
 
+    # Mejor Payback arriba
     fig.update_layout(
         yaxis={
-            "categoryorder":
-                "total descending"
-        },
-        height=460,
-        margin={
-            "l": 240,
-            "r": 40,
-            "t": 70,
-            "b": 60
+            "categoryorder": "array",
+            "categoryarray":
+                datos[
+                    "Tecnologias_legibles"
+                ].tolist()[::-1]
         }
     )
 
-    return fig
+    return _estilo_comun(fig)
 
 
 def grafico_beneficio_incremental(
     tabla,
     top_n=8
 ):
-    """
-    Beneficio incremental anual por alternativa.
-    """
 
     datos = _preparar_tabla(tabla)
 
@@ -194,7 +198,7 @@ def grafico_beneficio_incremental(
             "Beneficio_incremental_anual":
                 "Beneficio incremental anual (€)",
             "Tecnologias_legibles":
-                "Tecnologías"
+                ""
         },
         hover_data={
             "Inversion": ":,.0f",
@@ -210,27 +214,21 @@ def grafico_beneficio_incremental(
         yaxis={
             "categoryorder":
                 "total ascending"
-        },
-        height=460,
-        margin={
-            "l": 240,
-            "r": 40,
-            "t": 70,
-            "b": 60
         }
     )
 
-    return fig
+    fig.update_xaxes(
+        zeroline=True,
+        zerolinewidth=2
+    )
+
+    return _estilo_comun(fig)
 
 
 def grafico_escenarios_futuros(
     tabla_escenarios,
     variable="Precio_tonelada_venta"
 ):
-    """
-    Compara una variable entre escenarios
-    conservador, central y alcista.
-    """
 
     datos = (
         tabla_escenarios
@@ -246,7 +244,7 @@ def grafico_escenarios_futuros(
         datos,
         x="Escenario",
         y=variable,
-        title=f"Comparación de escenarios: {variable}",
+        title="Comparación de escenarios futuros",
         labels={
             variable:
                 variable.replace("_", " ")
@@ -254,12 +252,12 @@ def grafico_escenarios_futuros(
     )
 
     fig.update_layout(
-        height=400,
+        height=360,
         margin={
             "l": 60,
             "r": 40,
-            "t": 70,
-            "b": 60
+            "t": 65,
+            "b": 50
         }
     )
 
