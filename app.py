@@ -14,7 +14,12 @@ from dash import (
 
 from src.etl import preparar_datos
 from src.model import entrenar_modelos
-from src.finance import evaluar_todas_alternativas
+
+from src.finance import (
+    evaluar_todas_alternativas,
+    evaluar_alternativas_multicultivo
+)
+
 from src.graphics import (
     grafico_ranking_van,
     grafico_ranking_payback,
@@ -117,8 +122,10 @@ def obtener_parametros_historicos(
     ]
 
     if datos.empty:
+
         raise ValueError(
-            "No existen datos para ese cultivo y año."
+            f"No existen datos de {cultivo} "
+            f"para el año {anio}."
         )
 
     return {
@@ -209,6 +216,8 @@ def crear_configuracion_actual(
             )
     }
 
+    # Si existe alguna tecnología avanzada,
+    # RTK + ISOBUS se considera requisito previo.
     if (
         configuracion["Siembra_variable"]
         or configuracion["Abono_variable"]
@@ -352,95 +361,238 @@ app.layout = html.Div(
             "1. Configuración de la explotación"
         ),
 
-        html.Div(
+        html.Label(
+            "Tipo de explotación",
+            style={
+                "fontWeight": "bold"
+            }
+        ),
+
+        dcc.RadioItems(
+            id="tipo-explotacion",
+
+            options=[
+                {
+                    "label":
+                        " Un cultivo",
+                    "value":
+                        "mono"
+                },
+                {
+                    "label":
+                        " Varios cultivos",
+                    "value":
+                        "multi"
+                }
+            ],
+
+            value="mono",
+
+            inline=True,
+
+            labelStyle={
+                "marginRight": "25px"
+            },
 
             style={
-                "display": "grid",
-                "gridTemplateColumns":
-                    "1fr 1fr 1fr",
-                "gap": "22px"
-            },
+                "marginTop": "8px",
+                "marginBottom": "20px"
+            }
+        ),
+
+        # -------------------------------------------------
+        # MONOCULTIVO
+        # -------------------------------------------------
+
+        html.Div(
+            id="bloque-monocultivo",
 
             children=[
 
-                html.Div([
-                    html.Label(
-                        "Cultivo"
-                    ),
+                html.Div(
 
-                    dcc.Dropdown(
-                        id="cultivo",
-                        options=[
-                            {
-                                "label": "Maíz",
-                                "value": "Maiz"
-                            },
-                            {
-                                "label": "Arroz",
-                                "value": "Arroz"
-                            },
-                            {
-                                "label": "Tomate",
-                                "value": "Tomates"
-                            }
-                        ],
-                        value="Maiz",
-                        clearable=False
-                    )
-                ]),
+                    style={
+                        "display": "grid",
+                        "gridTemplateColumns":
+                            "1fr 1fr",
+                        "gap": "22px"
+                    },
 
-                html.Div([
-                    html.Label(
-                        "Superficie (ha)"
-                    ),
+                    children=[
 
-                    dcc.Input(
-                        id="superficie",
-                        type="number",
-                        value=100,
-                        min=1,
-                        step=1,
-                        style=ESTILO_INPUT
-                    )
-                ]),
+                        html.Div([
+                            html.Label(
+                                "Cultivo"
+                            ),
 
-                html.Div([
-                    html.Label(
-                        "Escenario económico"
-                    ),
+                            dcc.Dropdown(
+                                id="cultivo",
 
-                    dcc.Dropdown(
-                        id="escenario",
+                                options=[
+                                    {
+                                        "label":
+                                            "Maíz",
+                                        "value":
+                                            "Maiz"
+                                    },
+                                    {
+                                        "label":
+                                            "Arroz",
+                                        "value":
+                                            "Arroz"
+                                    },
+                                    {
+                                        "label":
+                                            "Tomate",
+                                        "value":
+                                            "Tomates"
+                                    }
+                                ],
 
-                        options=[
-                            {
-                                "label":
-                                    "Precios constantes",
-                                "value":
-                                    "constantes"
-                            },
-                            {
-                                "label":
-                                    "Precios históricos",
-                                "value":
-                                    "historicos"
-                            },
-                            {
-                                "label":
-                                    "Personalizado",
-                                "value":
-                                    "personalizado"
-                            }
-                        ],
+                                value="Maiz",
+                                clearable=False
+                            )
+                        ]),
 
-                        value="constantes",
-                        clearable=False
-                    )
-                ])
+                        html.Div([
+                            html.Label(
+                                "Superficie (ha)"
+                            ),
+
+                            dcc.Input(
+                                id="superficie",
+                                type="number",
+                                value=100,
+                                min=1,
+                                step=1,
+                                style=ESTILO_INPUT
+                            )
+                        ])
+                    ]
+                )
+            ]
+        ),
+
+        # -------------------------------------------------
+        # MULTICULTIVO
+        # -------------------------------------------------
+
+        html.Div(
+            id="bloque-multicultivo",
+
+            children=[
+
+                html.P(
+                    "Introduce la superficie dedicada "
+                    "a cada cultivo. Utiliza 0 ha para "
+                    "los cultivos que no estén presentes."
+                ),
+
+                html.Div(
+
+                    style={
+                        "display": "grid",
+                        "gridTemplateColumns":
+                            "repeat(3, 1fr)",
+                        "gap": "22px"
+                    },
+
+                    children=[
+
+                        html.Div([
+                            html.Label(
+                                "Maíz (ha)"
+                            ),
+
+                            dcc.Input(
+                                id="superficie-maiz",
+                                type="number",
+                                value=60,
+                                min=0,
+                                step=1,
+                                style=ESTILO_INPUT
+                            )
+                        ]),
+
+                        html.Div([
+                            html.Label(
+                                "Arroz (ha)"
+                            ),
+
+                            dcc.Input(
+                                id="superficie-arroz",
+                                type="number",
+                                value=30,
+                                min=0,
+                                step=1,
+                                style=ESTILO_INPUT
+                            )
+                        ]),
+
+                        html.Div([
+                            html.Label(
+                                "Tomate (ha)"
+                            ),
+
+                            dcc.Input(
+                                id="superficie-tomates",
+                                type="number",
+                                value=10,
+                                min=0,
+                                step=1,
+                                style=ESTILO_INPUT
+                            )
+                        ])
+                    ]
+                )
             ]
         ),
 
         html.Br(),
+
+        # -------------------------------------------------
+        # ESCENARIO ECONÓMICO
+        # -------------------------------------------------
+
+        html.Div([
+            html.Label(
+                "Escenario económico"
+            ),
+
+            dcc.Dropdown(
+                id="escenario",
+
+                options=[
+                    {
+                        "label":
+                            "Precios constantes",
+                        "value":
+                            "constantes"
+                    },
+                    {
+                        "label":
+                            "Precios históricos",
+                        "value":
+                            "historicos"
+                    },
+                    {
+                        "label":
+                            "Personalizado",
+                        "value":
+                            "personalizado"
+                    }
+                ],
+
+                value="constantes",
+                clearable=False
+            )
+        ]),
+
+        html.Br(),
+
+        # -------------------------------------------------
+        # TECNOLOGÍAS
+        # -------------------------------------------------
 
         html.Label(
             "Tecnologías instaladas actualmente",
@@ -638,8 +790,10 @@ app.layout = html.Div(
                         html.H4(
                             "Mejor inversión"
                         ),
+
                         html.Div(
                             id="kpi-tecnologias",
+
                             style={
                                 "fontSize": "18px",
                                 "fontWeight": "bold",
@@ -691,22 +845,22 @@ app.layout = html.Div(
             ]
         ),
 
-        # Interpretación automática
-
         html.Div(
             id="texto-recomendacion",
 
             style={
                 "padding": "16px 18px",
                 "marginBottom": "25px",
-                "borderLeft": "4px solid #555",
-                "backgroundColor": "#f7f7f7",
-                "fontSize": "16px",
-                "lineHeight": "1.5"
+                "borderLeft":
+                    "4px solid #555",
+                "backgroundColor":
+                    "#f7f7f7",
+                "fontSize":
+                    "16px",
+                "lineHeight":
+                    "1.5"
             }
         ),
-
-        # Tabla
 
         dash_table.DataTable(
             id="tabla-ranking",
@@ -714,8 +868,7 @@ app.layout = html.Div(
             page_size=8,
 
             style_table={
-                "overflowX": "auto",
-                "borderRadius": "8px"
+                "overflowX": "auto"
             },
 
             style_cell={
@@ -730,16 +883,7 @@ app.layout = html.Div(
             style_header={
                 "fontWeight": "bold",
                 "backgroundColor": "#f5f5f5"
-            },
-
-            style_data_conditional=[
-                {
-                    "if": {
-                        "column_id": "VAN"
-                    },
-                    "fontWeight": "500"
-                }
-            ]
+            }
         ),
 
         html.Br(),
@@ -760,7 +904,44 @@ app.layout = html.Div(
 
 
 # =========================================================
-# MOSTRAR CONTROLES ECONÓMICOS
+# MONO / MULTICULTIVO
+# =========================================================
+
+@app.callback(
+    Output(
+        "bloque-monocultivo",
+        "style"
+    ),
+    Output(
+        "bloque-multicultivo",
+        "style"
+    ),
+    Input(
+        "tipo-explotacion",
+        "value"
+    )
+)
+def mostrar_tipo_explotacion(
+    tipo
+):
+
+    visible = {
+        "display": "block"
+    }
+
+    oculto = {
+        "display": "none"
+    }
+
+    if tipo == "multi":
+
+        return oculto, visible
+
+    return visible, oculto
+
+
+# =========================================================
+# ESCENARIO ECONÓMICO
 # =========================================================
 
 @app.callback(
@@ -791,9 +972,11 @@ def mostrar_controles_escenario(
     }
 
     if escenario == "historicos":
+
         return visible, oculto
 
     if escenario == "personalizado":
+
         return oculto, visible
 
     return oculto, oculto
@@ -813,21 +996,61 @@ def mostrar_controles_escenario(
         "value"
     ),
     Input(
+        "tipo-explotacion",
+        "value"
+    ),
+    Input(
         "cultivo",
         "value"
     )
 )
-def actualizar_anios(cultivo):
+def actualizar_anios(
+    tipo,
+    cultivo
+):
 
-    anios = sorted(
-        df_historicos[
-            df_historicos["Cultivo"]
-            == cultivo
-        ]["Año"]
-        .dropna()
-        .unique()
-        .tolist()
-    )
+    if tipo == "multi":
+
+        # Para multicultivo usamos solo años
+        # presentes en los tres cultivos.
+        conjuntos = []
+
+        for nombre_cultivo in [
+            "Maiz",
+            "Arroz",
+            "Tomates"
+        ]:
+
+            anios = set(
+                df_historicos[
+                    df_historicos["Cultivo"]
+                    == nombre_cultivo
+                ]["Año"]
+                .dropna()
+                .astype(int)
+                .tolist()
+            )
+
+            conjuntos.append(anios)
+
+        anios = sorted(
+            set.intersection(
+                *conjuntos
+            )
+        )
+
+    else:
+
+        anios = sorted(
+            df_historicos[
+                df_historicos["Cultivo"]
+                == cultivo
+            ]["Año"]
+            .dropna()
+            .astype(int)
+            .unique()
+            .tolist()
+        )
 
     opciones = [
         {
@@ -906,21 +1129,45 @@ def actualizar_anios(cultivo):
     ),
 
     State(
+        "tipo-explotacion",
+        "value"
+    ),
+
+    State(
         "cultivo",
         "value"
     ),
+
     State(
         "superficie",
         "value"
     ),
+
+    State(
+        "superficie-maiz",
+        "value"
+    ),
+
+    State(
+        "superficie-arroz",
+        "value"
+    ),
+
+    State(
+        "superficie-tomates",
+        "value"
+    ),
+
     State(
         "escenario",
         "value"
     ),
+
     State(
         "anio-historico",
         "value"
     ),
+
     State(
         "tecnologias-actuales",
         "value"
@@ -930,26 +1177,32 @@ def actualizar_anios(cultivo):
         "precio-venta",
         "value"
     ),
+
     State(
         "precio-gasoil",
         "value"
     ),
+
     State(
         "precio-fitosanitario",
         "value"
     ),
+
     State(
         "precio-semilla",
         "value"
     ),
+
     State(
         "precio-abono",
         "value"
     ),
+
     State(
         "gastos-fijos",
         "value"
     ),
+
     State(
         "descuento-humedad",
         "value"
@@ -957,8 +1210,12 @@ def actualizar_anios(cultivo):
 )
 def analizar_inversiones(
     n_clicks,
+    tipo_explotacion,
     cultivo,
     superficie,
+    superficie_maiz,
+    superficie_arroz,
+    superficie_tomates,
     escenario,
     anio,
     tecnologias_actuales,
@@ -990,104 +1247,232 @@ def analizar_inversiones(
 
     try:
 
-        if (
-            superficie is None
-            or superficie <= 0
-        ):
-            raise ValueError(
-                "La superficie debe ser mayor que 0."
-            )
-
         configuracion_actual = (
             crear_configuracion_actual(
                 tecnologias_actuales
             )
         )
 
-        # =============================================
-        # ESCENARIO ECONÓMICO
-        # =============================================
+        # =================================================
+        # MONOCULTIVO
+        # =================================================
 
-        if escenario == "constantes":
+        if tipo_explotacion == "mono":
 
-            parametros = (
-                obtener_parametros_constantes(
-                    cultivo
-                )
-            )
-
-        elif escenario == "historicos":
-
-            parametros = (
-                obtener_parametros_historicos(
-                    cultivo,
-                    anio
-                )
-            )
-
-        elif escenario == "personalizado":
-
-            valores = [
-                precio_venta,
-                precio_gasoil,
-                precio_fitosanitario,
-                precio_semilla,
-                precio_abono,
-                gastos_fijos
-            ]
-
-            if any(
-                valor is None
-                for valor in valores
+            if (
+                superficie is None
+                or superficie <= 0
             ):
+
                 raise ValueError(
-                    "Completa todos los parámetros "
-                    "del escenario personalizado."
+                    "La superficie debe ser "
+                    "mayor que 0."
                 )
 
-            parametros = {
-                "Precio_tonelada_venta":
+            if escenario == "constantes":
+
+                parametros = (
+                    obtener_parametros_constantes(
+                        cultivo
+                    )
+                )
+
+            elif escenario == "historicos":
+
+                parametros = (
+                    obtener_parametros_historicos(
+                        cultivo,
+                        anio
+                    )
+                )
+
+            elif escenario == "personalizado":
+
+                valores = [
                     precio_venta,
-
-                "Precio_litro_gasoleoB":
                     precio_gasoil,
-
-                "Precio_litro_Fitosanitario":
                     precio_fitosanitario,
-
-                "Precio_unitario_semilla":
                     precio_semilla,
-
-                "Precio_Abono_kg":
                     precio_abono,
+                    gastos_fijos
+                ]
 
-                "Gastos_fijos_por_ha":
-                    gastos_fijos,
+                if any(
+                    valor is None
+                    for valor in valores
+                ):
 
-                "Descuento_humedad_por_t":
-                    descuento_humedad
-            }
+                    raise ValueError(
+                        "Completa todos los parámetros "
+                        "del escenario personalizado."
+                    )
+
+                parametros = {
+                    "Precio_tonelada_venta":
+                        precio_venta,
+
+                    "Precio_litro_gasoleoB":
+                        precio_gasoil,
+
+                    "Precio_litro_Fitosanitario":
+                        precio_fitosanitario,
+
+                    "Precio_unitario_semilla":
+                        precio_semilla,
+
+                    "Precio_Abono_kg":
+                        precio_abono,
+
+                    "Gastos_fijos_por_ha":
+                        gastos_fijos,
+
+                    "Descuento_humedad_por_t":
+                        descuento_humedad
+                }
+
+            else:
+
+                raise ValueError(
+                    "Escenario económico no válido."
+                )
+
+            tabla = evaluar_todas_alternativas(
+                cultivo=cultivo,
+                superficie=superficie,
+                configuracion_actual=
+                    configuracion_actual,
+                parametros=parametros,
+                modelos=modelos,
+                vida_util=15,
+                tasa_descuento=0.05
+            )
+
+            descripcion_explotacion = (
+                f"{superficie:g} ha de "
+                f"{cultivo.lower()}"
+            )
+
+        # =================================================
+        # MULTICULTIVO
+        # =================================================
 
         else:
 
-            raise ValueError(
-                "Escenario económico no válido."
+            superficies = {
+                "Maiz":
+                    superficie_maiz or 0,
+
+                "Arroz":
+                    superficie_arroz or 0,
+
+                "Tomates":
+                    superficie_tomates or 0
+            }
+
+            # Eliminamos cultivos con 0 ha
+            explotacion = {
+                cultivo_nombre:
+                    superficie_cultivo
+
+                for (
+                    cultivo_nombre,
+                    superficie_cultivo
+                )
+                in superficies.items()
+
+                if superficie_cultivo > 0
+            }
+
+            if not explotacion:
+
+                raise ValueError(
+                    "Introduce superficie en al menos "
+                    "un cultivo."
+                )
+
+            if escenario == "personalizado":
+
+                raise ValueError(
+                    "El escenario personalizado "
+                    "multicultivo se incorporará "
+                    "en el siguiente bloque. "
+                    "Utiliza por ahora precios "
+                    "constantes o históricos."
+                )
+
+            parametros_por_cultivo = {}
+
+            for cultivo_nombre in explotacion:
+
+                if escenario == "constantes":
+
+                    parametros_por_cultivo[
+                        cultivo_nombre
+                    ] = (
+                        obtener_parametros_constantes(
+                            cultivo_nombre
+                        )
+                    )
+
+                elif escenario == "historicos":
+
+                    parametros_por_cultivo[
+                        cultivo_nombre
+                    ] = (
+                        obtener_parametros_historicos(
+                            cultivo_nombre,
+                            anio
+                        )
+                    )
+
+            tabla = (
+                evaluar_alternativas_multicultivo(
+                    explotacion=explotacion,
+
+                    configuracion_actual=
+                        configuracion_actual,
+
+                    parametros_por_cultivo=
+                        parametros_por_cultivo,
+
+                    modelos=modelos,
+
+                    vida_util=15,
+
+                    tasa_descuento=0.05
+                )
             )
 
-        # =============================================
-        # EVALUACIÓN
-        # =============================================
+            superficie_total = sum(
+                explotacion.values()
+            )
 
-        tabla = evaluar_todas_alternativas(
-            cultivo=cultivo,
-            superficie=superficie,
-            configuracion_actual=
-                configuracion_actual,
-            parametros=parametros,
-            modelos=modelos,
-            vida_util=15,
-            tasa_descuento=0.05
-        )
+            partes = []
+
+            for cultivo_nombre, hectareas in (
+                explotacion.items()
+            ):
+
+                nombre_visible = {
+                    "Maiz": "maíz",
+                    "Arroz": "arroz",
+                    "Tomates": "tomate"
+                }[cultivo_nombre]
+
+                partes.append(
+                    f"{hectareas:g} ha de "
+                    f"{nombre_visible}"
+                )
+
+            descripcion_explotacion = (
+                f"{superficie_total:g} ha "
+                f"distribuidas en "
+                + ", ".join(partes)
+            )
+
+        # =================================================
+        # RESULTADOS COMUNES
+        # =================================================
 
         if tabla.empty:
 
@@ -1106,10 +1491,6 @@ def analizar_inversiones(
         )
 
         mejor = ranking.iloc[0]
-
-        # =============================================
-        # NOMBRES
-        # =============================================
 
         ranking = ranking.copy()
 
@@ -1130,17 +1511,16 @@ def analizar_inversiones(
             )
         )
 
-        # =============================================
-        # INTERPRETACIÓN
-        # =============================================
+        # =================================================
+        # TEXTO DE RECOMENDACIÓN
+        # =================================================
 
         if mejor["VAN"] > 0:
 
             texto_recomendacion = (
                 f"Para una explotación de "
-                f"{superficie:g} ha de "
-                f"{cultivo.lower()}, la alternativa "
-                f"con mayor VAN es "
+                f"{descripcion_explotacion}, "
+                f"la alternativa con mayor VAN es "
                 f"{mejor_tecnologia}. "
                 f"Requiere una inversión de "
                 f"{formato_euros(mejor['Inversion'])}, "
@@ -1161,9 +1541,9 @@ def analizar_inversiones(
                 "condiciones seleccionadas."
             )
 
-        # =============================================
-        # TABLA FORMATEADA
-        # =============================================
+        # =================================================
+        # TABLA
+        # =================================================
 
         tabla_mostrar = pd.DataFrame({
             "Tecnologias":
@@ -1227,12 +1607,14 @@ def analizar_inversiones(
             }
         ]
 
-        # =============================================
+        # =================================================
         # GRÁFICOS
-        # =============================================
+        # =================================================
 
-        fig_van = grafico_ranking_van(
-            ranking
+        fig_van = (
+            grafico_ranking_van(
+                ranking
+            )
         )
 
         fig_payback = (
