@@ -20,6 +20,10 @@ from src.finance import (
     evaluar_alternativas_multicultivo
 )
 
+from src.forecast import (
+    generar_escenarios_todos_cultivos
+)
+
 from src.graphics import (
     grafico_ranking_van,
     grafico_ranking_payback,
@@ -73,6 +77,21 @@ RUTA_INVERSIONES = (
 
 modelos = entrenar_modelos(
     df_constantes
+)
+
+
+# =========================================================
+# INFORMACIÓN TEMPORAL
+# =========================================================
+
+ANIO_MAX_HISTORICO = int(
+    df_historicos["Año"]
+    .dropna()
+    .max()
+)
+
+ANIO_FUTURO_DEFAULT = (
+    ANIO_MAX_HISTORICO + 2
 )
 
 
@@ -216,8 +235,6 @@ def crear_configuracion_actual(
             )
     }
 
-    # Si existe alguna tecnología avanzada,
-    # RTK + ISOBUS se considera requisito previo.
     if (
         configuracion["Siembra_variable"]
         or configuracion["Abono_variable"]
@@ -373,16 +390,12 @@ app.layout = html.Div(
 
             options=[
                 {
-                    "label":
-                        " Un cultivo",
-                    "value":
-                        "mono"
+                    "label": " Un cultivo",
+                    "value": "mono"
                 },
                 {
-                    "label":
-                        " Varios cultivos",
-                    "value":
-                        "multi"
+                    "label": " Varios cultivos",
+                    "value": "multi"
                 }
             ],
 
@@ -430,22 +443,16 @@ app.layout = html.Div(
 
                                 options=[
                                     {
-                                        "label":
-                                            "Maíz",
-                                        "value":
-                                            "Maiz"
+                                        "label": "Maíz",
+                                        "value": "Maiz"
                                     },
                                     {
-                                        "label":
-                                            "Arroz",
-                                        "value":
-                                            "Arroz"
+                                        "label": "Arroz",
+                                        "value": "Arroz"
                                     },
                                     {
-                                        "label":
-                                            "Tomate",
-                                        "value":
-                                            "Tomates"
+                                        "label": "Tomate",
+                                        "value": "Tomates"
                                     }
                                 ],
 
@@ -580,6 +587,12 @@ app.layout = html.Div(
                             "Personalizado",
                         "value":
                             "personalizado"
+                    },
+                    {
+                        "label":
+                            "Previsión futura",
+                        "value":
+                            "futuro"
                     }
                 ],
 
@@ -663,6 +676,8 @@ app.layout = html.Div(
             "2. Condiciones económicas"
         ),
 
+        # Histórico
+
         html.Div(
             id="bloque-historico",
 
@@ -677,6 +692,8 @@ app.layout = html.Div(
                 )
             ]
         ),
+
+        # Personalizado
 
         html.Div(
             id="bloque-personalizado",
@@ -740,6 +757,106 @@ app.layout = html.Div(
                             placeholder="Descuento humedad €/t"
                         )
                     ]
+                )
+            ]
+        ),
+
+        # -------------------------------------------------
+        # PREVISIÓN FUTURA
+        # -------------------------------------------------
+
+        html.Div(
+            id="bloque-futuro",
+
+            children=[
+
+                html.Div(
+
+                    style={
+                        "display": "grid",
+                        "gridTemplateColumns":
+                            "1fr 2fr",
+                        "gap": "25px",
+                        "alignItems": "end"
+                    },
+
+                    children=[
+
+                        html.Div([
+                            html.Label(
+                                "Año objetivo"
+                            ),
+
+                            dcc.Input(
+                                id="anio-futuro",
+                                type="number",
+                                value=
+                                    ANIO_FUTURO_DEFAULT,
+                                min=
+                                    ANIO_MAX_HISTORICO + 1,
+                                step=1,
+                                style=ESTILO_INPUT
+                            )
+                        ]),
+
+                        html.Div([
+                            html.Label(
+                                "Escenario futuro"
+                            ),
+
+                            dcc.RadioItems(
+                                id="escenario-futuro",
+
+                                options=[
+                                    {
+                                        "label":
+                                            " Conservador",
+                                        "value":
+                                            "Conservador"
+                                    },
+                                    {
+                                        "label":
+                                            " Central",
+                                        "value":
+                                            "Central"
+                                    },
+                                    {
+                                        "label":
+                                            " Alcista",
+                                        "value":
+                                            "Alcista"
+                                    }
+                                ],
+
+                                value="Central",
+
+                                inline=True,
+
+                                labelStyle={
+                                    "marginRight":
+                                        "25px"
+                                },
+
+                                style={
+                                    "marginTop":
+                                        "10px"
+                                }
+                            )
+                        ])
+                    ]
+                ),
+
+                html.P(
+                    "La previsión se obtiene a partir "
+                    "de las tendencias históricas de "
+                    "los parámetros económicos. "
+                    "Debe interpretarse como un "
+                    "escenario orientativo y no como "
+                    "una predicción garantizada.",
+                    style={
+                        "fontSize": "13px",
+                        "marginTop": "15px"
+                    }
                 )
             ]
         ),
@@ -882,7 +999,8 @@ app.layout = html.Div(
 
             style_header={
                 "fontWeight": "bold",
-                "backgroundColor": "#f5f5f5"
+                "backgroundColor":
+                    "#f5f5f5"
             }
         ),
 
@@ -904,7 +1022,7 @@ app.layout = html.Div(
 
 
 # =========================================================
-# MONO / MULTICULTIVO
+# MONO / MULTI
 # =========================================================
 
 @app.callback(
@@ -921,9 +1039,7 @@ app.layout = html.Div(
         "value"
     )
 )
-def mostrar_tipo_explotacion(
-    tipo
-):
+def mostrar_tipo_explotacion(tipo):
 
     visible = {
         "display": "block"
@@ -934,14 +1050,13 @@ def mostrar_tipo_explotacion(
     }
 
     if tipo == "multi":
-
         return oculto, visible
 
     return visible, oculto
 
 
 # =========================================================
-# ESCENARIO ECONÓMICO
+# MOSTRAR ESCENARIO ECONÓMICO
 # =========================================================
 
 @app.callback(
@@ -951,6 +1066,10 @@ def mostrar_tipo_explotacion(
     ),
     Output(
         "bloque-personalizado",
+        "style"
+    ),
+    Output(
+        "bloque-futuro",
         "style"
     ),
     Input(
@@ -973,13 +1092,33 @@ def mostrar_controles_escenario(
 
     if escenario == "historicos":
 
-        return visible, oculto
+        return (
+            visible,
+            oculto,
+            oculto
+        )
 
     if escenario == "personalizado":
 
-        return oculto, visible
+        return (
+            oculto,
+            visible,
+            oculto
+        )
 
-    return oculto, oculto
+    if escenario == "futuro":
+
+        return (
+            oculto,
+            oculto,
+            visible
+        )
+
+    return (
+        oculto,
+        oculto,
+        oculto
+    )
 
 
 # =========================================================
@@ -1011,8 +1150,6 @@ def actualizar_anios(
 
     if tipo == "multi":
 
-        # Para multicultivo usamos solo años
-        # presentes en los tres cultivos.
         conjuntos = []
 
         for nombre_cultivo in [
@@ -1031,7 +1168,9 @@ def actualizar_anios(
                 .tolist()
             )
 
-            conjuntos.append(anios)
+            conjuntos.append(
+                anios
+            )
 
         anios = sorted(
             set.intersection(
@@ -1169,6 +1308,16 @@ def actualizar_anios(
     ),
 
     State(
+        "anio-futuro",
+        "value"
+    ),
+
+    State(
+        "escenario-futuro",
+        "value"
+    ),
+
+    State(
         "tecnologias-actuales",
         "value"
     ),
@@ -1218,6 +1367,8 @@ def analizar_inversiones(
     superficie_tomates,
     escenario,
     anio,
+    anio_futuro,
+    escenario_futuro,
     tecnologias_actuales,
     precio_venta,
     precio_gasoil,
@@ -1254,6 +1405,40 @@ def analizar_inversiones(
         )
 
         # =================================================
+        # PREVISIÓN FUTURA
+        # =================================================
+
+        escenarios_futuros = None
+
+        if escenario == "futuro":
+
+            if anio_futuro is None:
+
+                raise ValueError(
+                    "Introduce un año objetivo."
+                )
+
+            if (
+                anio_futuro
+                <= ANIO_MAX_HISTORICO
+            ):
+
+                raise ValueError(
+                    f"El año objetivo debe ser "
+                    f"posterior a "
+                    f"{ANIO_MAX_HISTORICO}."
+                )
+
+            escenarios_futuros = (
+                generar_escenarios_todos_cultivos(
+                    df=df_historicos,
+                    anio_objetivo=
+                        int(anio_futuro),
+                    variacion=0.10
+                )
+            )
+
+        # =================================================
         # MONOCULTIVO
         # =================================================
 
@@ -1277,6 +1462,10 @@ def analizar_inversiones(
                     )
                 )
 
+                descripcion_escenario = (
+                    "precios constantes"
+                )
+
             elif escenario == "historicos":
 
                 parametros = (
@@ -1284,6 +1473,11 @@ def analizar_inversiones(
                         cultivo,
                         anio
                     )
+                )
+
+                descripcion_escenario = (
+                    f"precios históricos "
+                    f"de {anio}"
                 )
 
             elif escenario == "personalizado":
@@ -1303,8 +1497,9 @@ def analizar_inversiones(
                 ):
 
                     raise ValueError(
-                        "Completa todos los parámetros "
-                        "del escenario personalizado."
+                        "Completa todos los "
+                        "parámetros del escenario "
+                        "personalizado."
                     )
 
                 parametros = {
@@ -1330,10 +1525,30 @@ def analizar_inversiones(
                         descuento_humedad
                 }
 
+                descripcion_escenario = (
+                    "parámetros personalizados"
+                )
+
+            elif escenario == "futuro":
+
+                parametros = (
+                    escenarios_futuros[
+                        cultivo
+                    ][
+                        escenario_futuro
+                    ]
+                )
+
+                descripcion_escenario = (
+                    f"previsión {escenario_futuro.lower()} "
+                    f"para {int(anio_futuro)}"
+                )
+
             else:
 
                 raise ValueError(
-                    "Escenario económico no válido."
+                    "Escenario económico "
+                    "no válido."
                 )
 
             tabla = evaluar_todas_alternativas(
@@ -1369,7 +1584,6 @@ def analizar_inversiones(
                     superficie_tomates or 0
             }
 
-            # Eliminamos cultivos con 0 ha
             explotacion = {
                 cultivo_nombre:
                     superficie_cultivo
@@ -1386,18 +1600,19 @@ def analizar_inversiones(
             if not explotacion:
 
                 raise ValueError(
-                    "Introduce superficie en al menos "
-                    "un cultivo."
+                    "Introduce superficie en "
+                    "al menos un cultivo."
                 )
 
             if escenario == "personalizado":
 
                 raise ValueError(
                     "El escenario personalizado "
-                    "multicultivo se incorporará "
-                    "en el siguiente bloque. "
+                    "multicultivo requiere parámetros "
+                    "específicos por cultivo. "
                     "Utiliza por ahora precios "
-                    "constantes o históricos."
+                    "constantes, históricos o "
+                    "previsión futura."
                 )
 
             parametros_por_cultivo = {}
@@ -1425,6 +1640,39 @@ def analizar_inversiones(
                         )
                     )
 
+                elif escenario == "futuro":
+
+                    parametros_por_cultivo[
+                        cultivo_nombre
+                    ] = (
+                        escenarios_futuros[
+                            cultivo_nombre
+                        ][
+                            escenario_futuro
+                        ]
+                    )
+
+            if escenario == "constantes":
+
+                descripcion_escenario = (
+                    "precios constantes"
+                )
+
+            elif escenario == "historicos":
+
+                descripcion_escenario = (
+                    f"precios históricos "
+                    f"de {anio}"
+                )
+
+            elif escenario == "futuro":
+
+                descripcion_escenario = (
+                    f"previsión "
+                    f"{escenario_futuro.lower()} "
+                    f"para {int(anio_futuro)}"
+                )
+
             tabla = (
                 evaluar_alternativas_multicultivo(
                     explotacion=explotacion,
@@ -1449,19 +1697,20 @@ def analizar_inversiones(
 
             partes = []
 
-            for cultivo_nombre, hectareas in (
-                explotacion.items()
-            ):
+            nombres_visibles = {
+                "Maiz": "maíz",
+                "Arroz": "arroz",
+                "Tomates": "tomate"
+            }
 
-                nombre_visible = {
-                    "Maiz": "maíz",
-                    "Arroz": "arroz",
-                    "Tomates": "tomate"
-                }[cultivo_nombre]
+            for (
+                cultivo_nombre,
+                hectareas
+            ) in explotacion.items():
 
                 partes.append(
                     f"{hectareas:g} ha de "
-                    f"{nombre_visible}"
+                    f"{nombres_visibles[cultivo_nombre]}"
                 )
 
             descripcion_explotacion = (
@@ -1471,7 +1720,7 @@ def analizar_inversiones(
             )
 
         # =================================================
-        # RESULTADOS COMUNES
+        # RESULTADOS
         # =================================================
 
         if tabla.empty:
@@ -1512,7 +1761,7 @@ def analizar_inversiones(
         )
 
         # =================================================
-        # TEXTO DE RECOMENDACIÓN
+        # RECOMENDACIÓN
         # =================================================
 
         if mejor["VAN"] > 0:
@@ -1520,6 +1769,8 @@ def analizar_inversiones(
             texto_recomendacion = (
                 f"Para una explotación de "
                 f"{descripcion_explotacion}, "
+                f"bajo el escenario de "
+                f"{descripcion_escenario}, "
                 f"la alternativa con mayor VAN es "
                 f"{mejor_tecnologia}. "
                 f"Requiere una inversión de "
@@ -1530,15 +1781,16 @@ def analizar_inversiones(
                 f"{formato_payback(mejor['Payback'])}. "
                 f"El resultado debe interpretarse "
                 f"como apoyo a la decisión bajo los "
-                f"supuestos económicos seleccionados."
+                f"supuestos seleccionados."
             )
 
         else:
 
             texto_recomendacion = (
-                "Ninguna de las alternativas evaluadas "
-                "presenta un VAN positivo bajo las "
-                "condiciones seleccionadas."
+                f"Bajo el escenario de "
+                f"{descripcion_escenario}, "
+                f"ninguna de las alternativas "
+                f"evaluadas presenta un VAN positivo."
             )
 
         # =================================================
