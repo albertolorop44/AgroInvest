@@ -399,3 +399,72 @@ print(
     ),
     "€/ha"
 )
+
+from itertools import product
+
+
+print(
+    "\n"
+    + "=" * 90
+)
+
+print(
+    "DISTRIBUCIÓN REAL DE CONFIGURACIONES TECNOLÓGICAS"
+)
+
+print(
+    "=" * 90
+)
+
+
+tecnologias = [
+    "RTK",
+    "ISOBUS",
+    "Siembra_variable",
+    "Abono_variable",
+    "Corte_tramos"
+]
+
+
+for cultivo_diagnostico in [
+    "Maiz",
+    "Arroz",
+    "Tomates"
+]:
+
+    print(
+        f"\n{'=' * 60}"
+    )
+
+    print(
+        cultivo_diagnostico.upper()
+    )
+
+    print(
+        "=" * 60
+    )
+
+    df_cultivo = df_constantes[
+        df_constantes["Cultivo"]
+        == cultivo_diagnostico
+    ]
+
+    configuraciones_reales = (
+        df_cultivo[
+            tecnologias
+        ]
+        .value_counts()
+        .reset_index(
+            name="Observaciones"
+        )
+        .sort_values(
+            "Observaciones",
+            ascending=False
+        )
+    )
+
+    print(
+        configuraciones_reales.to_string(
+            index=False
+        )
+    )
