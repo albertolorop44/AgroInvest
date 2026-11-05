@@ -216,55 +216,79 @@ tabla_economica = pd.DataFrame(
 
 
 # =========================================================
-# 6. CUÁNTOS CASOS REALES HAY DE CADA CONFIGURACIÓN
+# SOPORTE HISTÓRICO POR CULTIVO
 # =========================================================
 
-soporte_historico = []
-
-for nombre, configuracion in configuraciones.items():
-
-    expandida = expandir_configuracion(
-        configuracion
-    )
-
-    filtro = (
-        (df_constantes["Cultivo"] == "Maiz")
-        &
-        (df_constantes["RTK"] == expandida["RTK"])
-        &
-        (df_constantes["ISOBUS"] == expandida["ISOBUS"])
-        &
-        (
-            df_constantes["Siembra_variable"]
-            == expandida["Siembra_variable"]
-        )
-        &
-        (
-            df_constantes["Abono_variable"]
-            == expandida["Abono_variable"]
-        )
-        &
-        (
-            df_constantes["Corte_tramos"]
-            == expandida["Corte_tramos"]
-        )
-    )
-
-    soporte_historico.append({
-        "Configuracion":
-            nombre,
-
-        "Observaciones_reales":
-            int(filtro.sum())
-    })
-
-
-tabla_soporte = pd.DataFrame(
-    soporte_historico
-).set_index(
-    "Configuracion"
+print(
+    "\n"
+    + "=" * 80
 )
 
+print(
+    "SOPORTE HISTÓRICO POR CULTIVO"
+)
+
+print(
+    "=" * 80
+)
+
+
+for cultivo_diagnostico in [
+    "Maiz",
+    "Arroz",
+    "Tomates"
+]:
+
+    print(
+        f"\n--- {cultivo_diagnostico} ---"
+    )
+
+    for nombre, configuracion in configuraciones.items():
+
+        expandida = expandir_configuracion(
+            configuracion
+        )
+
+        filtro = (
+            (
+                df_constantes["Cultivo"]
+                == cultivo_diagnostico
+            )
+            &
+            (
+                df_constantes["RTK"]
+                == expandida["RTK"]
+            )
+            &
+            (
+                df_constantes["ISOBUS"]
+                == expandida["ISOBUS"]
+            )
+            &
+            (
+                df_constantes["Siembra_variable"]
+                == expandida["Siembra_variable"]
+            )
+            &
+            (
+                df_constantes["Abono_variable"]
+                == expandida["Abono_variable"]
+            )
+            &
+            (
+                df_constantes["Corte_tramos"]
+                == expandida["Corte_tramos"]
+            )
+        )
+
+        observaciones = int(
+            filtro.sum()
+        )
+
+        print(
+            f"{nombre}: "
+            f"{observaciones} observaciones"
+        )
 
 # =========================================================
 # 7. RESULTADOS
