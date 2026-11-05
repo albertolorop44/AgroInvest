@@ -326,10 +326,20 @@ def comparar_configuraciones(
     )
 
     pred_objetivo = predecir_resultados(
-        cultivo=cultivo,
-        modelos=modelos,
-        **config_objetivo_modelo
-    )
+    cultivo=cultivo,
+    modelos=modelos,
+    **config_objetivo_modelo
+)
+
+# Ajuste conservador para RTK + ISOBUS aislado
+pred_objetivo = ajustar_prediccion_rtk_isobus(
+    pred_actual=pred_actual,
+    pred_objetivo=pred_objetivo,
+    configuracion_objetivo=
+        configuracion_objetivo
+)
+
+eco_objetivo = calcular_resultado_economico(
 
     eco_objetivo = calcular_resultado_economico(
         cultivo=cultivo,
