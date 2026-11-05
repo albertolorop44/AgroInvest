@@ -22,9 +22,9 @@ from src.model import (
 from src.finance import (
     evaluar_todas_alternativas,
     evaluar_alternativas_multicultivo,
-    expandir_configuracion
+    expandir_configuracion,
+    ajustar_prediccion_rtk_isobus
 )
-
 from src.forecast import (
     generar_escenarios_todos_cultivos
 )
@@ -429,6 +429,12 @@ def crear_comparacion_tecnica_cultivo(
             **recomendada_modelo
         )
     )
+    pred_recomendada = ajustar_prediccion_rtk_isobus(
+    pred_actual=pred_actual,
+    pred_objetivo=pred_recomendada,
+    configuracion_objetivo=
+        configuracion_recomendada
+)
 
     filas = []
 
