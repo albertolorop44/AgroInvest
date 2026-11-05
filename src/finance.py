@@ -37,6 +37,58 @@ def expandir_configuracion(configuracion):
         "Corte_tramos": configuracion["Corte_tramos"]
     }
 
+def ajustar_prediccion_rtk_isobus(
+    pred_actual,
+    pred_objetivo,
+    configuracion_objetivo
+):
+    """
+    Aplica un escenario conservador cuando la
+    configuración objetivo es exclusivamente
+    RTK + ISOBUS.
+
+    Dado que no existen observaciones históricas
+    de RTK + ISOBUS aislado, no se atribuyen
+    cambios en rendimiento ni en insumos
+    directamente productivos.
+
+    Las mejoras se limitan a:
+    - productividad
+    - consumo de combustible
+    - número de pasadas
+    """
+
+    es_rtk_isobus_solo = (
+        configuracion_objetivo["RTK_ISOBUS"] == 1
+        and configuracion_objetivo["Siembra_variable"] == 0
+        and configuracion_objetivo["Abono_variable"] == 0
+        and configuracion_objetivo["Corte_tramos"] == 0
+    )
+
+    if not es_rtk_isobus_solo:
+        return pred_objetivo
+
+    pred_ajustada = pred_objetivo.copy()
+
+    # Variables que mantenemos iguales
+    # a la situación actual
+    variables_constantes = [
+        "Rend_t_ha",
+        "Fitosanitarios_ha",
+        "Semillas_ha",
+        "Abono_ha"
+    ]
+
+    for variable in variables_constantes:
+        pred_ajustada[variable] = (
+            pred_actual[variable]
+        )
+
+    # Productividad, combustible y pasadas
+    # mantienen la predicción del modelo.
+
+    return pred_ajustada
+
 
 def calcular_resultado_economico(
     cultivo,
