@@ -339,8 +339,6 @@ pred_objetivo = ajustar_prediccion_rtk_isobus(
         configuracion_objetivo
 )
 
-eco_objetivo = calcular_resultado_economico(
-
     eco_objetivo = calcular_resultado_economico(
         cultivo=cultivo,
         superficie=superficie,
