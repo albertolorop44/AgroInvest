@@ -1,0 +1,390 @@
+
+:root {
+    --agro-green-900: #244c2b;
+    --agro-green-700: #3f6f3e;
+    --agro-green-500: #5f914d;
+    --agro-green-200: #dce9d4;
+    --agro-green-100: #eef5e9;
+    --agro-cream: #f4f1e7;
+    --agro-paper: #ffffff;
+    --agro-gold: #c89535;
+    --agro-text: #243128;
+    --agro-muted: #667267;
+    --agro-border: #d9e5d4;
+    --agro-shadow: 0 10px 30px rgba(45, 82, 50, 0.08);
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    background:
+        radial-gradient(circle at 8% 0%, rgba(143, 181, 115, 0.14), transparent 30%),
+        linear-gradient(180deg, #f6f4ec 0%, #eef3e9 100%);
+    color: var(--agro-text);
+    font-family: Inter, "Segoe UI", Arial, sans-serif;
+}
+
+.app-shell {
+    width: min(1400px, calc(100% - 32px));
+    box-sizing: border-box;
+}
+
+.hero-agroinvest {
+    min-height: 390px;
+    margin: 4px 0 28px;
+    border-radius: 24px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    background-image:
+        linear-gradient(90deg, rgba(18, 45, 25, 0.84) 0%, rgba(18, 45, 25, 0.58) 48%, rgba(18, 45, 25, 0.16) 100%),
+        url("/assets/hero_siembra.png");
+    background-size: cover;
+    background-position: center 58%;
+    box-shadow: 0 18px 45px rgba(24, 54, 29, 0.20);
+}
+
+.hero-content {
+    max-width: 760px;
+    padding: 54px;
+    color: #ffffff;
+}
+
+.hero-kicker,
+.eyebrow {
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.hero-kicker {
+    color: #e8cf85;
+    margin-bottom: 12px;
+}
+
+.hero-agroinvest h1 {
+    margin: 0;
+    font-size: clamp(42px, 6vw, 72px);
+    line-height: 0.98;
+    letter-spacing: -0.04em;
+    color: #ffffff;
+}
+
+.hero-agroinvest p {
+    margin: 18px 0 22px;
+    max-width: 690px;
+    font-size: 20px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.hero-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.hero-tags span {
+    padding: 8px 12px;
+    border: 1px solid rgba(255,255,255,0.30);
+    border-radius: 999px;
+    background: rgba(255,255,255,0.10);
+    backdrop-filter: blur(4px);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.crop-showcase {
+    display: grid;
+    grid-template-columns: minmax(260px, 0.7fr) minmax(0, 1.3fr);
+    gap: 26px;
+    align-items: center;
+    margin: 0 0 34px;
+    padding: 24px;
+    border: 1px solid var(--agro-border);
+    border-radius: 20px;
+    background: rgba(255,255,255,0.86);
+    box-shadow: var(--agro-shadow);
+}
+
+.showcase-heading h3 {
+    margin: 6px 0 8px;
+    font-size: 25px;
+    color: var(--agro-green-900);
+}
+
+.showcase-heading p {
+    margin: 0;
+    color: var(--agro-muted);
+    line-height: 1.55;
+}
+
+.eyebrow {
+    color: var(--agro-gold);
+}
+
+.crop-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+}
+
+.photo-card {
+    position: relative;
+    height: 150px;
+    overflow: hidden;
+    border-radius: 16px;
+    box-shadow: 0 7px 20px rgba(31, 62, 35, 0.12);
+}
+
+.photo-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform .35s ease;
+}
+
+.photo-card:hover img {
+    transform: scale(1.04);
+}
+
+.photo-card::after {
+    content: "";
+    position: absolute;
+    inset: 45% 0 0;
+    background: linear-gradient(transparent, rgba(15, 35, 19, 0.75));
+}
+
+.photo-card-label {
+    position: absolute;
+    left: 14px;
+    bottom: 12px;
+    z-index: 2;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+h2 {
+    margin-top: 34px !important;
+    padding: 14px 18px;
+    border-left: 6px solid var(--agro-green-500);
+    border-radius: 10px;
+    color: var(--agro-green-900);
+    background: linear-gradient(90deg, rgba(220,233,212,0.72), rgba(255,255,255,0));
+    letter-spacing: -0.02em;
+}
+
+h3, h4 {
+    color: var(--agro-green-900);
+}
+
+hr {
+    border: 0;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(63,111,62,.25), rgba(63,111,62,.05));
+    margin: 26px 0;
+}
+
+label {
+    color: #2e4031;
+}
+
+.field-help {
+    font-size: 12px;
+    margin: 7px 0 0;
+    color: var(--agro-muted);
+    line-height: 1.45;
+}
+
+.scenario-card,
+.budget-card,
+.finance-details,
+#bloque-monocultivo,
+#bloque-multicultivo,
+#bloque-historico,
+#bloque-personalizado,
+#bloque-futuro {
+    box-sizing: border-box;
+    border: 1px solid var(--agro-border);
+    border-radius: 16px;
+    background: rgba(255,255,255,0.88);
+    box-shadow: 0 7px 22px rgba(45,82,50,0.055);
+}
+
+.scenario-card,
+#bloque-monocultivo,
+#bloque-multicultivo,
+#bloque-historico,
+#bloque-personalizado,
+#bloque-futuro {
+    padding: 18px;
+    margin: 10px 0 14px;
+}
+
+.budget-card {
+    padding: 18px !important;
+}
+
+.finance-details {
+    padding: 16px 18px;
+    max-width: 760px;
+}
+
+.finance-details summary {
+    color: var(--agro-green-900);
+}
+
+.technology-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin: 12px 0 14px;
+}
+
+.technology-card {
+    overflow: hidden;
+    border: 1px solid var(--agro-border);
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 5px 16px rgba(45,82,50,.06);
+}
+
+.technology-card {
+    transition: transform .20s ease, box-shadow .20s ease;
+}
+
+.technology-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(45,82,50,.12);
+}
+
+.technology-card img {
+    width: 100%;
+    height: 190px;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+    box-sizing: border-box;
+    padding: 8px;
+    background: linear-gradient(180deg, #f7faf5 0%, #edf4e9 100%);
+}
+
+.technology-card > div {
+    padding: 12px 14px 14px;
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--agro-green-900);
+    border-top: 1px solid var(--agro-border);
+    background: #ffffff;
+}
+
+.Select-control,
+input[type="number"],
+input[type="text"] {
+    border-color: #bdcfb7 !important;
+}
+
+.Select-control:hover,
+input[type="number"]:focus,
+input[type="text"]:focus {
+    border-color: var(--agro-green-500) !important;
+    box-shadow: 0 0 0 3px rgba(95,145,77,.10) !important;
+}
+
+#boton-analizar {
+    background: linear-gradient(135deg, var(--agro-green-900), var(--agro-green-700)) !important;
+    color: #ffffff !important;
+    border: 0 !important;
+    box-shadow: 0 10px 24px rgba(36,76,43,.22);
+    font-weight: 800;
+    letter-spacing: .01em;
+    transition: transform .18s ease, box-shadow .18s ease;
+}
+
+#boton-analizar:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 13px 30px rgba(36,76,43,.28);
+}
+
+#texto-recomendacion {
+    border-radius: 0 14px 14px 0;
+    box-shadow: 0 5px 16px rgba(45,82,50,.05);
+}
+
+.dash-table-container {
+    overflow: hidden;
+    border-radius: 14px;
+    box-shadow: 0 5px 18px rgba(45,82,50,.05);
+}
+
+.js-plotly-plot {
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 7px 22px rgba(45,82,50,.06);
+    border: 1px solid #e3ebdf;
+    background: #ffffff;
+    margin-bottom: 18px;
+}
+
+.rc-slider-track {
+    background-color: var(--agro-green-500);
+}
+
+.rc-slider-handle {
+    border-color: var(--agro-green-500);
+}
+
+@media (max-width: 980px) {
+    .crop-showcase {
+        grid-template-columns: 1fr;
+    }
+
+    .technology-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .hero-content {
+        padding: 38px 30px;
+    }
+}
+
+@media (max-width: 680px) {
+    .app-shell {
+        width: min(100%, calc(100% - 16px));
+        padding: 8px !important;
+    }
+
+    .hero-agroinvest {
+        min-height: 420px;
+        border-radius: 18px;
+        background-position: 58% center;
+    }
+
+    .hero-content {
+        padding: 28px 22px;
+    }
+
+    .hero-agroinvest p {
+        font-size: 17px;
+    }
+
+    .crop-grid,
+    .technology-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .photo-card {
+        height: 180px;
+    }
+
+    .technology-card img {
+        height: 240px;
+    }
+}
