@@ -2,13 +2,13 @@
 # DATOS
 # =========================================================
 
-# Ignorar datasets y archivos de datos por defecto
+# Ignorar archivos de datos por defecto
 *.xlsx
 *.xls
 *.csv
 datos/
 
-# Permitir únicamente los datos necesarios para ejecutar AgroInvest
+# Permitir únicamente los 3 Excel necesarios para AgroInvest
 !data/
 !data/precios_constantes.xlsx
 !data/precios_historicos.xlsx
@@ -16,11 +16,16 @@ datos/
 
 
 # =========================================================
-# PYTHON
+# ARCHIVOS TEMPORALES DE PYTHON
 # =========================================================
 
 __pycache__/
 *.pyc
+
+
+# =========================================================
+# ENTORNOS VIRTUALES
+# =========================================================
 
 venv/
 .venv/
