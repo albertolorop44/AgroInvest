@@ -1,21 +1,41 @@
-# Datos privados
+# =========================================================
+# DATOS
+# =========================================================
+
+# Ignorar datasets y archivos de datos por defecto
 *.xlsx
 *.xls
 *.csv
-data/
 datos/
 
-# Archivos temporales de Python
+# Permitir únicamente los datos necesarios para ejecutar AgroInvest
+!data/
+!data/precios_constantes.xlsx
+!data/precios_historicos.xlsx
+!data/inversiones_tecnologia.xlsx
+
+
+# =========================================================
+# PYTHON
+# =========================================================
+
 __pycache__/
 *.pyc
 
-# Entornos virtuales
 venv/
 .venv/
 
-# Jupyter
+
+# =========================================================
+# JUPYTER
+# =========================================================
+
 .ipynb_checkpoints/
 
-# Sistema
+
+# =========================================================
+# SISTEMA
+# =========================================================
+
 .DS_Store
 Thumbs.db
